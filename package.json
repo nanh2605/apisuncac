@@ -1,19 +1,16 @@
 {
-  "name": "max789-prediction-api",
+  "name": "sunwin-predict-api",
   "version": "1.0.0",
-  "description": "Dự đoán Tài Xỉu Max789 - MD5 & Hũ",
-  "main": "max789.js",
-  "type": "module",
+  "main": "index.js",
   "scripts": {
-    "start": "node max789.js",
-    "dev": "node max789.js"
-  },
-  "dependencies": {
-    "fastify": "^4.28.0",
-    "@fastify/cors": "^9.0.1",
-    "node-fetch": "^3.3.2"
+    "start": "node index.js"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "node-fetch": "^2.7.0"
   }
 }
