@@ -1,9 +1,9 @@
 {
   "name": "sunwin-predict-api",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "suncac.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node suncac.js"
   },
   "engines": {
     "node": ">=18.0.0"
