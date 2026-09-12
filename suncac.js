@@ -6,7 +6,7 @@ const app = express();
 app.use(cors());
 
 const PORT = process.env.PORT || 3000;
-const HISTORY_API_URL = "https://sunwinsaygex-8616.onrender.com/api/his";
+const HISTORY_API_URL = "https://kwinstore.com/sunwin/tx/history/6510962597fde7c34586236827167b434fc246af9b55777c";
 const CACHE_TTL = 5000;
 
 const PATTERN_DATA = {
@@ -169,8 +169,24 @@ async function fetchHistory() {
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
-        if (!json.success || !Array.isArray(json.data)) throw new Error("Invalid data");
-        cache.history = [...json.data].reverse();
+
+        // API mới: check status === "OK" và data là mảng
+        if (json.status !== "OK" || !Array.isArray(json.data)) {
+            throw new Error("Invalid data format");
+        }
+
+        // Map field tiếng Việt sang field chuẩn, và API mới đã mới→cũ nên KHÔNG reverse
+        const mapped = json.data.map(item => ({
+            phien: item["phiên"],
+            xuc_xac_1: item.d1,
+            xuc_xac_2: item.d2,
+            xuc_xac_3: item.d3,
+            tong: item["tổng"],
+            ket_qua: item["kết quả"],
+            timestamp: item.updatedAt
+        }));
+
+        cache.history = mapped;
         cache.lastFetch = Date.now();
         return cache.history;
     } catch (e) {
@@ -272,4 +288,5 @@ app.listen(PORT, '0.0.0.0', async () => {
     console.log(`Server running on port ${PORT}`);
     const h = await getHistory(true);
     console.log(`Loaded ${h.length} sessions`);
+    if (h.length) console.log(`Latest: phien ${h[0].phien}, ket_qua: ${h[0].ket_qua}`);
 });
