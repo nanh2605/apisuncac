@@ -9,9 +9,6 @@ const PORT = process.env.PORT || 3000;
 const HISTORY_API_URL = "https://kwinstore.com/sunwin/tx/history/6510962597fde7c34586236827167b434fc246af9b55777c";
 const CACHE_TTL = 5000;
 
-// ============================================================
-// [1] PATTERN DICTIONARY (từ thuattoan.js) - 250+ mẫu thủ công
-// ============================================================
 const PATTERN_DICT = {
   "TXT":{"prediction":"Xỉu","confidence":68},"TTXX":{"prediction":"Tài","confidence":87},
   "XXTXX":{"prediction":"Tài","confidence":59},"TTX":{"prediction":"Xỉu","confidence":73},
@@ -139,9 +136,6 @@ const PATTERN_DICT = {
   "XXXXXXT":{"prediction":"Tài","confidence":94},"XXXXXXX":{"prediction":"Tài","confidence":83}
 };
 
-// ============================================================
-// [2] PATTERN_DATA (từ sun.win.py) - xác suất Tài/Xỉu theo chuỗi
-// ============================================================
 const PATTERN_DATA = {
   "tttt":{tai:73,xiu:27},"xxxx":{tai:27,xiu:73},"tttttt":{tai:83,xiu:17},
   "xxxxxx":{tai:17,xiu:83},"ttttx":{tai:40,xiu:60},"xxxxt":{tai:60,xiu:40},
@@ -162,15 +156,15 @@ const PATTERN_DATA = {
   "ttxtx":{tai:62,xiu:38},"xxtxt":{tai:38,xiu:62},"ttxxt":{tai:55,xiu:45},
   "xxttx":{tai:45,xiu:55},"tttttx":{tai:30,xiu:70},"xxxxxt":{tai:70,xiu:30},
   "tttttttx":{tai:20,xiu:80},"xxxxxxxt":{tai:80,xiu:20},"ttttttttx":{tai:15,xiu:85},
-  "xxxxxxxxt2":{tai:85,xiu:15},"txtx":{tai:52,xiu:48},"xtxt":{tai:48,xiu:52},
-  "txtxt":{tai:53,xiu:47},"xtxtx":{tai:47,xiu:53},"txtxtxt":{tai:57,xiu:43},
-  "xtxtxtx":{tai:43,xiu:57},"ttxxttxx":{tai:38,xiu:62},"xxttxxtt":{tai:62,xiu:38},
-  "ttxxxttx":{tai:45,xiu:55},"xxttxxxt":{tai:55,xiu:45},"ttxtxttx":{tai:50,xiu:50},
-  "xxtxtxxt":{tai:50,xiu:50},"ttxttx":{tai:60,xiu:40},"xxtxxt":{tai:40,xiu:60},
-  "ttxxtx":{tai:58,xiu:42},"ttxtxtx":{tai:62,xiu:38},"xxtxtxt":{tai:38,xiu:62},
-  "ttxxtxt":{tai:55,xiu:45},"xxtxttx":{tai:45,xiu:55},"ttxtxxt":{tai:65,xiu:35},
-  "ttxtxttx2":{tai:70,xiu:30},"ttxxtxtx":{tai:68,xiu:32},"xxtxtxtx":{tai:32,xiu:68},
-  "ttxtxxtx":{tai:72,xiu:28},"ttxxtxxt":{tai:75,xiu:25}
+  "txtx":{tai:52,xiu:48},"xtxt":{tai:48,xiu:52},"txtxt":{tai:53,xiu:47},
+  "xtxtx":{tai:47,xiu:53},"txtxtxt":{tai:57,xiu:43},"xtxtxtx":{tai:43,xiu:57},
+  "ttxxttxx":{tai:38,xiu:62},"xxttxxtt":{tai:62,xiu:38},"ttxxxttx":{tai:45,xiu:55},
+  "xxttxxxt":{tai:55,xiu:45},"ttxtxttx":{tai:50,xiu:50},"xxtxtxxt":{tai:50,xiu:50},
+  "ttxttx":{tai:60,xiu:40},"xxtxxt":{tai:40,xiu:60},"ttxxtx":{tai:58,xiu:42},
+  "ttxtxtx":{tai:62,xiu:38},"xxtxtxt":{tai:38,xiu:62},"ttxxtxt":{tai:55,xiu:45},
+  "xxtxttx":{tai:45,xiu:55},"ttxtxxt":{tai:65,xiu:35},"ttxtxttx2":{tai:70,xiu:30},
+  "ttxxtxtx":{tai:68,xiu:32},"xxtxtxtx":{tai:32,xiu:68},"ttxtxxtx":{tai:72,xiu:28},
+  "ttxxtxxt":{tai:75,xiu:25}
 };
 
 const BIG_STREAK_DATA = {
@@ -190,21 +184,14 @@ const SUM_STATS = {
   "16":{tai:75,xiu:25},"17":{tai:85,xiu:15},"18":{tai:100,xiu:0}
 };
 
-// ============================================================
-// [3] PATTERN SHAPES + CORE BRAINS (từ ĐÃ GIẢI MÃ HÓA.html)
-// ============================================================
 const SHAPES = [
   [1,1],[2,2],[3,3],[4,4],[2,1],[1,2],[3,1],[1,3],[4,1],[1,4],[3,2],[2,3],[4,2],[2,4],
   [2,1,2],[1,2,1],[3,1,3],[1,3,1],[2,2,1],[1,1,2],[3,2,1],[1,2,3],[2,3,2],
   [3,3,1],[1,1,3],[2,1,1],[3,1,1],[1,1,1,2],[2,2,1,1],[3,2,2],[4,1,1]
 ];
 
-// ============================================================
-// HELPERS
-// ============================================================
 const opp = v => v === 'T' ? 'X' : 'T';
 const clamp = (v,a,b) => v<a?a:(v>b?b:v);
-const sig = z => 1/(1+Math.exp(-clamp(z,-30,30)));
 const avg = a => a.reduce((x,y)=>x+y,0)/(a.length||1);
 
 function rle(s) {
@@ -221,7 +208,6 @@ function P(pick, strength) {
   return pick==='T' ? s : 1-s;
 }
 
-// Khớp shape trên RLE
 function matchShape(s, shape) {
   const r = rle(s);
   if (r.length < shape.length + 1) return null;
@@ -247,9 +233,6 @@ function matchShape(s, shape) {
   return {pick:opp(cur.v),s:strength,cycles,want:wantLen};
 }
 
-// ============================================================
-// THUẬT TOÁN 1: PATTERN-BASED (từ sun.win.py)
-// ============================================================
 function findClosestPattern(input) {
   if (!input) return null;
   const keys = Object.keys(PATTERN_DATA).sort((a,b)=>b.length-a.length);
@@ -306,20 +289,15 @@ function patternBasedPredict(history) {
   return history[0].tong>=11 ? {prediction:"Tài",confidence:55} : {prediction:"Xỉu",confidence:55};
 }
 
-// ============================================================
-// THUẬT TOÁN 2: SUPER VI LONG - 15 TẦNG (từ apisun_predict.js)
-// ============================================================
 function superViLongAlgorithm(h, rawHistory) {
   if (h.length < 15) return -1;
   const pStr = h.slice(0, Math.min(30, h.length)).join('');
   let curStreak = 0;
   for (let i=0;i<h.length;i++) { if (h[i]===h[0]) curStreak++; else break; }
 
-  // TẦNG 1: VIP 11
   let vip11Pred = -1;
   if (h.length>=2 && h[0]!==h[1]) vip11Pred = h[0];
 
-  // TẦNG 2: FLASH
   let flashPred = -1;
   if (h.length>=2 && h.length<10) {
     flashPred = h[0]===h[1] ? h[0] : (h[0]===1?0:1);
@@ -329,7 +307,6 @@ function superViLongAlgorithm(h, rawHistory) {
     }
   }
 
-  // TẦNG 3: TENSOR
   let tensorPred = -1;
   if (h.length>=25) {
     const b1 = h.slice(0,8).filter(x=>x===1).length;
@@ -340,7 +317,6 @@ function superViLongAlgorithm(h, rawHistory) {
     if (Math.abs(b1-b2)<=1 && Math.abs(b2-b3)<=1 && curStreak>=2) tensorPred = h[0]===1?0:1;
   }
 
-  // TẦNG 4: ELLIOT WAVE
   let elliotWavePred = -1;
   if (h.length>=15) {
     const waves = []; let wCount=1;
@@ -351,7 +327,6 @@ function superViLongAlgorithm(h, rawHistory) {
     if (waves.length>=3 && waves[0]===1 && waves[1]===2 && waves[2]>=3) elliotWavePred = h[0]===1?0:1;
   }
 
-  // TẦNG 5: POISSON
   let poissonPred = -1;
   if (h.length>=30) {
     const cT = h.slice(0,30).filter(x=>x===1).length;
@@ -359,7 +334,6 @@ function superViLongAlgorithm(h, rawHistory) {
     else if (cT<=8 && h[0]===0) poissonPred = 1;
   }
 
-  // TẦNG 6: CLUSTER
   let clusterPred = -1;
   if (h.length>=8) {
     const cs = h[0]*8+h[1]*4+h[2]*2+h[3]*1;
@@ -367,7 +341,6 @@ function superViLongAlgorithm(h, rawHistory) {
     else if (cs===0 && curStreak===4) clusterPred = 1;
   }
 
-  // TẦNG 7: QUANTUM
   let quantumPred = -1;
   if (h.length>=25) {
     let qT=0, qX=0;
@@ -380,7 +353,6 @@ function superViLongAlgorithm(h, rawHistory) {
     else if (qX>=3 && h[0]===0) quantumPred = 1;
   }
 
-  // TẦNG 8: VIP VI LONG
   let vipViLongPred = -1;
   if (h.length>=20) {
     let crossScore = 0;
@@ -389,7 +361,6 @@ function superViLongAlgorithm(h, rawHistory) {
     if (pStr.startsWith('1110111') || pStr.startsWith('0001000')) vipViLongPred = h[0];
   }
 
-  // TẦNG 9: MARKOV 3D
   let markov3DPred = -1;
   if (h.length>=25) {
     const pattern3 = ""+h[2]+h[1]+h[0];
@@ -403,7 +374,6 @@ function superViLongAlgorithm(h, rawHistory) {
     else if (t0>t1 && t0>=2) markov3DPred = 0;
   }
 
-  // TẦNG 10: GAUSSIAN
   let gaussianPred = -1;
   if (rawHistory && rawHistory.length>=15) {
     const sums = [];
@@ -423,7 +393,6 @@ function superViLongAlgorithm(h, rawHistory) {
     }
   }
 
-  // TẦNG 11: FRACTAL
   let fractalPred = -1;
   if (h.length>=20) {
     const curF = h.slice(0,4).join('');
@@ -432,7 +401,6 @@ function superViLongAlgorithm(h, rawHistory) {
     }
   }
 
-  // CÂY ƯU TIÊN
   if (gaussianPred!==-1) return gaussianPred;
   if (markov3DPred!==-1) return markov3DPred;
   if (fractalPred!==-1) return fractalPred;
@@ -451,9 +419,6 @@ function superViLongAlgorithm(h, rawHistory) {
   return h[0];
 }
 
-// ============================================================
-// THUẬT TOÁN 3: SCORE-BASED (từ function predict.txt)
-// ============================================================
 function scoreBasedPredict(history, sumHistory) {
   if (history.length < 5) {
     const last = history[history.length-1];
@@ -463,7 +428,6 @@ function scoreBasedPredict(history, sumHistory) {
   let score = 0;
   const last = history[history.length-1];
 
-  // MARKOV
   const markov = {TT:0,TX:0,XX:0,XT:0};
   for (let i=1;i<history.length;i++) {
     const p = history[i-1], c = history[i];
@@ -480,7 +444,6 @@ function scoreBasedPredict(history, sumHistory) {
     if (tot>0) score += (markov.XT/tot-0.5)*1.5;
   }
 
-  // PATTERN 2-5
   const p2={},p3={},p4={},p5={};
   for (let i=2;i<=history.length;i++) {
     const h = history[i-1];
@@ -497,12 +460,10 @@ function scoreBasedPredict(history, sumHistory) {
   if (history.length>=4) applyP(p4, history.slice(-4).join(''), 1.1);
   if (history.length>=5) applyP(p5, history.slice(-5).join(''), 1.0);
 
-  // AVG 5
   if (sumHistory.length>=5) {
     const a5 = sumHistory.slice(-5).reduce((a,b)=>a+b,0)/5;
     if (a5>10.5) score += 0.8; else if (a5<9.5) score -= 0.8;
   }
-  // AVG 10 + STD
   if (sumHistory.length>=10) {
     const a10 = sumHistory.slice(-10).reduce((a,b)=>a+b,0)/10;
     if (a10>10.8) score += 0.6; else if (a10<9.2) score -= 0.6;
@@ -510,14 +471,12 @@ function scoreBasedPredict(history, sumHistory) {
     if (Math.sqrt(v)>3.5) score *= 0.9;
   }
 
-  // STREAK
   let streak=1;
   for (let i=history.length-1;i>0;i--) {
     if (history[i]===history[i-1]) streak++; else break;
   }
   if (streak>=2) score += (last==='TÀI'?-1.2:1.2)*Math.min(streak,5)*0.5;
 
-  // ZIGZAG
   if (history.length>=10) {
     let zz=true;
     for (let i=1;i<=7;i++) {
@@ -526,7 +485,6 @@ function scoreBasedPredict(history, sumHistory) {
     if (zz) score += last==='TÀI'?1.0:-1.0;
   }
 
-  // PHÂN BỐ 10
   const l10 = history.slice(-10);
   const t10 = l10.filter(x=>x==='TÀI').length;
   const x10 = l10.filter(x=>x==='XỈU').length;
@@ -539,9 +497,6 @@ function scoreBasedPredict(history, sumHistory) {
   return {result: finalResult, percent};
 }
 
-// ============================================================
-// THUẬT TOÁN 4: PATTERN DICT (từ thuattoan.js)
-// ============================================================
 function patternDictPredict(history) {
   if (!history.length) return {prediction:null,confidence:0,matched:null};
   const bits = history.map(s=>s.ket_qua==="Tài"?"T":"X");
@@ -556,13 +511,9 @@ function patternDictPredict(history) {
   return {prediction:null,confidence:0,matched:null};
 }
 
-// ============================================================
-// THUẬT TOÁN 5: SHAPE-BASED (từ ĐÃ GIẢI MÃ HÓA.html - PATTERN SHAPES)
-// ============================================================
 function shapeBasedPredict(history) {
   if (history.length < 10) return {prediction:null,confidence:0,shape:null};
-  const seq = history.map(s=>s.ket_qua==="Tài"?"T":"X"); // mới -> cũ
-  // Đảo thành cũ -> mới cho matchShape
+  const seq = history.map(s=>s.ket_qua==="Tài"?"T":"X");
   const seqOldFirst = seq.slice().reverse();
   let best = null;
   for (const shape of SHAPES) {
@@ -582,9 +533,6 @@ function shapeBasedPredict(history) {
   return {prediction:null,confidence:0,shape:null};
 }
 
-// ============================================================
-// THUẬT TOÁN 6: CORE BRAINS (40+ từ ĐÃ GIẢI MÃ HÓA.html)
-// ============================================================
 function cyc(s, pat) {
   const r = rle(s), L = pat.length;
   if (r.length < Math.max(3, L+1)) return null;
@@ -616,8 +564,7 @@ function markovCore(s, o) {
     if (s.slice(i,i+o).join('')===k) m[s[i+o]]++;
   }
   const n = m.T+m.X;
-  if (n<4) return null;
-  if (m.T===m.X) return null;
+  if (n<4 || m.T===m.X) return null;
   return P(m.T>m.X?'T':'X', 0.5+Math.abs(m.T-m.X)/(2*n));
 }
 
@@ -831,19 +778,17 @@ const CORES = {
   }
 };
 
-// Chạy tất cả CORES và trả về pick từ consensus
 function runAllCores(seq, totals) {
   const results = [];
   for (const [name, fn] of Object.entries(CORES)) {
     try {
       const out = fn(seq, totals);
       if (out && out.p) {
-        results.push({name, pick: out.p, s: out.s, probT: out.p==='T'?out.s:1-out.s});
+        results.push({name, pick: out.p, s: out.s});
       }
     } catch(e) {}
   }
   if (!results.length) return null;
-  // Vote có trọng số theo độ mạnh
   let scoreT = 0, scoreX = 0, totalW = 0;
   for (const r of results) {
     const w = r.s;
@@ -852,18 +797,13 @@ function runAllCores(seq, totals) {
   }
   const pick = scoreT >= scoreX ? 'T' : 'X';
   const raw = Math.max(scoreT, scoreX) / (totalW || 1);
-  // raw 0.5..1 → conf 51..88
   let conf = Math.round(51 + (raw - 0.5) * 74);
-  // Agreement bonus
   const agree = results.filter(r=>r.pick===pick).length;
   if (agree >= results.length * 0.7) conf += 4;
   conf = Math.max(51, Math.min(92, conf));
   return {prediction: pick==='T'?'Tài':'Xỉu', confidence: conf, cores: results.length, agree};
 }
 
-// ============================================================
-// FUSION TỔNG - KẾT HỢP TẤT CẢ
-// ============================================================
 function finalPredict(history) {
   if (!history.length) return {prediction:"Tài", confidence:50};
 
@@ -871,62 +811,48 @@ function finalPredict(history) {
   const hNames = history.map(s=>s.ket_qua==="Tài"?"TÀI":"XỈU");
   const hNamesOldFirst = [...hNames].reverse();
   const sumHistoryOldFirst = history.map(s=>s.tong).reverse();
-  const seq = history.map(s=>s.ket_qua==="Tài"?"T":"X"); // mới -> cũ
+  const seq = history.map(s=>s.ket_qua==="Tài"?"T":"X");
   const totals = history.map(s=>s.tong);
 
-  // 1. Pattern-based (sun.win.py)
   const rPattern = patternBasedPredict(history);
-
-  // 2. Super Vi Long 15 tầng
   const rSuper = superViLongAlgorithm(hBits, history);
   const superPick = rSuper === -1 ? null : (rSuper === 1 ? "Tài" : "Xỉu");
-
-  // 3. Score-based
   const rScore = scoreBasedPredict(hNamesOldFirst, sumHistoryOldFirst);
   const scorePick = rScore.result === "TÀI" ? "Tài" : "Xỉu";
-
-  // 4. Pattern Dict
   const rDict = patternDictPredict(history);
-
-  // 5. Shape-based
   const rShape = shapeBasedPredict(history);
-
-  // 6. Core Brains (40+)
   const rCores = runAllCores(seq, totals);
 
-  // ===== VOTING =====
   const votes = {Tài: 0, Xỉu: 0};
   const confs = [];
-  const addVote = (pick, conf, weight, name) => {
+  const addVote = (pick, conf, weight) => {
     if (!pick) return;
     votes[pick] += weight;
-    confs.push({pred: pick, conf, weight, name});
+    confs.push({pred: pick, conf, weight});
   };
 
-  addVote(rPattern.prediction, rPattern.confidence, 1.0, "pattern");
-  addVote(superPick, 75, 1.5, "superViLong");
-  addVote(scorePick, rScore.percent, 1.2, "score");
+  addVote(rPattern.prediction, rPattern.confidence, 1.0);
+  addVote(superPick, 75, 1.5);
+  addVote(scorePick, rScore.percent, 1.2);
   if (rDict.prediction) {
     const dw = 1.2 + (rDict.confidence/100)*1.3;
-    addVote(rDict.prediction, rDict.confidence, dw, "dict");
+    addVote(rDict.prediction, rDict.confidence, dw);
   }
   if (rShape.prediction) {
     const sw = 1.3 + (rShape.cycles-2)*0.4;
-    addVote(rShape.prediction, rShape.confidence, sw, "shape");
+    addVote(rShape.prediction, rShape.confidence, sw);
   }
   if (rCores) {
     const cw = 1.4 + (rCores.agree/Math.max(1,rCores.cores))*0.6;
-    addVote(rCores.prediction, rCores.confidence, cw, "cores");
+    addVote(rCores.prediction, rCores.confidence, cw);
   }
 
   const finalPrediction = votes["Tài"] >= votes["Xỉu"] ? "Tài" : "Xỉu";
 
-  // Confidence trung bình có trọng số
   let totW = 0, wConf = 0;
   for (const c of confs) { wConf += c.conf*c.weight; totW += c.weight; }
   let finalConfidence = totW>0 ? wConf/totW : 55;
 
-  // Agreement bonus
   const agree = confs.filter(c=>c.pred===finalPrediction).length;
   if (agree >= 6) finalConfidence = Math.min(97, finalConfidence+12);
   else if (agree >= 5) finalConfidence = Math.min(94, finalConfidence+9);
@@ -954,10 +880,8 @@ function finalPredict(history) {
   };
 }
 
-// ============================================================
-// CACHE & FETCH
-// ============================================================
 let cache = {history: [], lastFetch: 0};
+let predictionLog = [];
 
 async function fetchHistory() {
   try {
@@ -996,13 +920,40 @@ async function getHistory(force = false) {
   return cache.history;
 }
 
-// ============================================================
-// ROUTES
-// ============================================================
+function logPrediction(history) {
+  if (history.length < 20) return;
+  const pred = finalPredict(history);
+  const nextPhien = history[0].phien + 1;
+  const existing = predictionLog.find(p => p.phien === nextPhien);
+  if (existing) return;
+  predictionLog.unshift({
+    phien: nextPhien,
+    du_doan: pred.prediction,
+    do_tin_cay: pred.confidence,
+    ket_qua_thuc: null,
+    dung: null,
+    timestamp: new Date().toISOString()
+  });
+  if (predictionLog.length > 500) predictionLog.pop();
+}
+
+function updateLogResult(history) {
+  if (!history.length) return;
+  const latest = history[0];
+  for (const log of predictionLog) {
+    if (log.phien === latest.phien && log.ket_qua_thuc === null) {
+      log.ket_qua_thuc = latest.ket_qua;
+      log.dung = log.du_doan === latest.ket_qua;
+    }
+  }
+}
+
 app.get('/api/sun', async (req, res) => {
   try {
     const history = await getHistory();
     if (!history.length) return res.status(503).json({error: "No data"});
+    updateLogResult(history);
+    logPrediction(history);
     const last = history[0];
     const pred = finalPredict(history);
     res.json({
@@ -1030,6 +981,63 @@ app.get('/api/detail', async (req, res) => {
   } catch (e) {
     res.status(500).json({error: e.message});
   }
+});
+
+app.get('/api/check', async (req, res) => {
+  try {
+    const history = await getHistory();
+    if (!history.length) return res.status(503).json({error: "No data"});
+    updateLogResult(history);
+    logPrediction(history);
+
+    const resolved = predictionLog.filter(p => p.dung !== null);
+    const correct = resolved.filter(p => p.dung === true).length;
+    const wrong = resolved.filter(p => p.dung === false).length;
+    const pending = predictionLog.filter(p => p.dung === null).length;
+    const total = resolved.length;
+    const accuracy = total > 0 ? ((correct / total) * 100).toFixed(2) : "0.00";
+
+    let streak = 0;
+    let streakType = null;
+    for (const p of resolved) {
+      if (streakType === null) {
+        streakType = p.dung;
+        streak = 1;
+      } else if (p.dung === streakType) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    const last20 = resolved.slice(0, 20);
+    const acc20 = last20.length > 0 ? ((last20.filter(p=>p.dung).length / last20.length) * 100).toFixed(2) : "0.00";
+    const last50 = resolved.slice(0, 50);
+    const acc50 = last50.length > 0 ? ((last50.filter(p=>p.dung).length / last50.length) * 100).toFixed(2) : "0.00";
+
+    res.json({
+      tong_du_doan: total,
+      dung: correct,
+      sai: wrong,
+      dang_cho: pending,
+      ti_le_dung: accuracy + "%",
+      ti_le_dung_20_gan_nhat: acc20 + "%",
+      ti_le_dung_50_gan_nhat: acc50 + "%",
+      streak_hien_tai: {
+        loai: streakType === true ? "ĐÚNG" : streakType === false ? "SAI" : "N/A",
+        so_luong: streak
+      },
+      lich_su_gan_nhat: predictionLog.slice(0, 20),
+      adm: "Duy Bảo"
+    });
+  } catch (e) {
+    res.status(500).json({error: e.message});
+  }
+});
+
+app.get('/api/check/reset', (req, res) => {
+  predictionLog = [];
+  res.json({success: true, message: "Đã xóa lịch sử kiểm tra"});
 });
 
 app.get('/api/history', async (req, res) => {
@@ -1068,23 +1076,17 @@ app.get('/api/health', (req, res) => {
 
 app.get('/', (req, res) => {
   res.json({
-    name: "SunWin Predict API - Full Fusion",
+    name: "SunWin Predict API",
     adm: "Duy Bảo",
     endpoints: {
       predict: "/api/sun",
       detail: "/api/detail",
+      check: "/api/check",
+      check_reset: "/api/check/reset",
       history: "/api/history?limit=50",
       stats: "/api/stats",
       health: "/api/health"
-    },
-    algorithms: [
-      "Pattern-based (sun.win.py)",
-      "SuperViLong 15 tầng",
-      "Score-based",
-      "Pattern Dictionary (250+ mẫu)",
-      "Shape-based (30+ khuôn cầu)",
-      "Core Brains (40+ lõi)"
-    ]
+    }
   });
 });
 
@@ -1093,8 +1095,9 @@ app.listen(PORT, '0.0.0.0', async () => {
   const h = await getHistory(true);
   console.log(`Loaded ${h.length} sessions`);
   if (h.length) {
+    updateLogResult(h);
+    logPrediction(h);
     const pred = finalPredict(h);
     console.log(`Prediction: ${pred.prediction} (${pred.confidence}%)`);
-    console.log(`Details:`, JSON.stringify(pred.details, null, 2));
   }
 });
